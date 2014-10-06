@@ -1,7 +1,20 @@
+/*
+ *@author = Matt Preisendorfer
+ * State Machine Creator and Tester
+ * Compiler: MinGW(g++)
+ * Version 0.8, revision #70-bagillion-zillion
+ * Last Revision 10/5/14 
+ * NOTE: sstream is unstable and only works with C++11 only
+ * refer to your complier for enabling sstream
+ */
+
+
 #include <iostream>
-#include <regex>
 #include <string>
 #include <fstream>
+#include <sstream>
+
+
 
 using namespace std;
 
@@ -11,13 +24,16 @@ s, //config input file string
 file, //name of input file
 test_strings, //test file string
 stringint, //string of ints used by the stringstream function
-rest_of_string;
+rest_of_string,
+test_string;        
+
 
 stringstream nums;
 
 char a;
 
 int
+d = 0,b = 0, c = 0, //used for clearing the transitions array
 i =0, //multipurpose pointer
 x=0, //pointer for end of strings with streamstream
 loop = 0, //multipurpose loop counter
@@ -53,7 +69,7 @@ while(!fin.eof()){
 s.insert(i,1,'\n');
 /**##################################**/
  i = 0;
- cout<<s;
+
 
 /**
 *GETTING DATA FROM INPUT FILE
@@ -137,7 +153,23 @@ while(loop< num_alpha){
 /************************************/
 
 /** CREATING THE 3D ARRAY TO HOLD ALL STATES AND TRANSITIONS **/
-int transitions[states+1][num_alpha+1][states+1];
+bool transitions[states+1][num_alpha+1][states+1];
+
+/**CLEARING THE ARRAY**/
+while(b <= states){
+    c = 0;
+    while(c <= num_alpha){
+        d = 0;
+        while(d <= states){
+            transitions[b][c][d] = 0;
+            d++;
+        }
+    c++;
+    }
+b++;
+}
+
+
 /**NOTE ALPHABET WILL BE STORED AS INT VALUE, EG 'E' = 0, a = '1', etc. **/
 
 
@@ -179,15 +211,41 @@ nums.clear();
 
 /** Setting that that transition exists **/
 transitions[s_transition][a_transition][f_transition] = true;
-cout<<s_transition<<" "<<a_transition<<" "<<f_transition<<endl;
 /*****************************************/
 
 
 i += 2;
-cout<<endl<<"i is at *"<<s.at(i)<<"*";
+
 goto begining;
 /** END OF GETTING DATA FROM INPUT FILE **/
 bottom_of_data_input:
+
+/**LISTING ALL TRANSITIONS**/
+cout<<"LIST OF ALL TRANSITIONS: "<<endl;
+i=1,x=0, loop = 1;
+
+while(i <= states){ //i starts at 1 == state 1, states = all states not including 0
+
+    x = 0;
+    while(x <= num_alpha){//x starts at 0, 0 == E transition, num_alpha has all alphabet except E transition
+
+        loop = 1;
+        while(loop <= states){ //same as first while loop
+            if(transitions[i][x][loop] == true) cout<<i<<" "<<x<<" "<<loop<<endl;
+            loop++;
+
+        }
+    x++;
+    }
+i++;
+}
+/**############################################################**/
+
+
+/*******************************************************************************************************
+********************************************************************************************************
+********************************************************************************************************
+*******************************************************************************************************/
 
 
 /**
@@ -211,77 +269,48 @@ while(!test_strings_file.eof()){
 test_strings.insert(i,1,'\n');
 /**##################################**/
 
-i=0,x=0;
+
+i = 0;
+x = 0;
+
+
+while(test_strings.at(x) != '\n'){
+    x++;
+}
+test_string = test_strings.substr(i,x-i);
+cout<<"*"<<test_string<<"*"<<endl;
+
+
+
+
 
 
 
 /**
  *TESTING STRINGS
 **/
-bool machine(int current_state, string rest_of_string, string test_strings, int num_alpha, char alphabet[], int i, transitions[][num_alpha+1][states+1]);
+bool machine(int final_states, int list_final_states[], string test_string,int states, int current_state, string rest_of_string, int num_alpha, char alphabet[], int i, char a /** , transitions[][][] **/);
+
+
+
+
+
 
 
 current_state = start_state;
 
 i = 0;
 
-/**GOTO RECURSIVE FUNCTION**/
 
-//cout<<machine(current_state, rest_of_string, test_strings, num_alpha, alphabet, i, transitions)<<endl;
-
-
-/** THE REST OF MAIN IS COMMENTED OUT, THIS IS WHERE IM HAVING TROUBLE
-
-/**SETTING THE CHARACTER TO THE CORRESPONDING ALPHABET NUMBER
-loop = 0;
-while(loop < num_alpha+1){
-    if(s.at(i) == alphabet[loop]){
-        x = loop;
-    }
-
-   loop++;
-}
-/**##########################################################
-
-loop = 1; //skips 0 because pos0 = state 0 = fail state
-
-/**SEE HOW MANY TRANSITIONS OF A CERTAIN ALPHA FROM THE CURRENT STATE THERE ARE
-while( loop < states+1){
-    if(transitions[current_state][x][loop] == true){
-        duplicate_trans ++;
-    }
-loop++;
-}
-cout<<endl<<"NUMBER OF TRANSITIONS OF THE CURRENT CHAR FROM CURRENT STATE = "<<duplicate_trans<<endl;
-
-
-
-if(duplicate_trans = 0){
-    cout<<"NO CONSUMABLE TRANSITIONS FROM THIS STATE"<<endl;
-
-}
+cout<<machine( final_states, list_final_states, test_string, states, current_state, rest_of_string, num_alpha, alphabet, i, a);
 
 
 
 
-else if(duplicate_trans = 1){
-/**FIND THE STATE THE TRANSITION GOES TO AND MAKE IT CURRENT STATE
-loop = 1;
-    while( loop < states+1){
-        if(transitions[current_state][x][loop] == true){
-        current_state = loop;
-        }
-    loop++;
-    }
-    i++; //pointer is at next character
-    goto top_of_tester;
-}//END OF DUP TRAN = 1
+cin>>a;
 
 
 
-
-
-**/
 return 0;
 }//END OF MAIN
 
@@ -300,33 +329,145 @@ return s.substr(i,x-i);
 
 
 
-bool machine(int current_state, string rest_of_string, string test_strings, int num_alpha, char alphabet[], int i , transitions[][][]){
-int a = 0, b = 0, looper = 0;
-char x;
+bool machine(int final_states, int list_final_states[], string test_string, int states, int current_state, string rest_of_string, int num_alpha, char alphabet[], int i, char a /** , transitions[][][] **/){
+
+int b = 0, looper = 0, num_of_trans = 0;
+bool found_trans = false, e_found_trans = false;
 
 
-x = test_strings.at(i);
 
-/**SETTING THE CHARACTER TO THE CORRESPONDING ALPHABET NUMBER **/
+//STEP 0.5: if a == \n then check to see if on an final state or not
+if(rest_of_string == "\n" || rest_of_string == ""){
+    while(looper < final_states ){
+        if(current_state == list_final_states[looper]){
+            return true; //if the current state is on one of the final states, return true
+        }
+    looper++;    
+    }
+return false;  //if it is not one of the final states then it must return false   
+}
+
+//####################################################################
+//STEP 1: get current state, get current position on the string to be tested, get the character to be tested 
+a = rest_of_string.at(i);
+//#########################################################################################################
+
+
+
+
+//STEP 2: convert the char to the corresponding alphabet integer EG a=1, E=0, etc. 
+
+looper = 0;
 while(looper < num_alpha+1){
-    if(test_strings.at(i) == alphabet[looper]){
-        a = looper;
+    if(rest_of_string.at(i) == alphabet[looper]){
+        b = looper;
     }
 
    looper++;
 }
-/**###########################################################**/
 
+// b = the number of the character
+//################################################################################
+
+//STEP 3: see how many transitions there are from current state
 looper = 1;
-/**SEE HOW MANY TRANSITIONS OF A CERTAIN ALPHA FROM THE CURRENT STATE THERE ARE**/
-while( looper < states+1){
-    if(transitions[current_state][a][looper] == true){
-        b ++;
-    }
-looper++;
-}
-cout<<endl<<"NUMBER OF TRANSITIONS OF THE CURRENT CHAR FROM CURRENT STATE = "<<b<<endl;
 
+while(looper < states+1){
+    if(/** transitions[current_state][b][looper] **/ == true){
+        num_of_trans++;
+    }
+    if(/** transitions[current_state][0][looper] **/ == true){
+        num_of_trans++;
+    }
+looper++;    
+}
+//##############################################################
+
+//STEP 4: if there are no transitions, return false, otherwise continue
+if(num_of_trans == 0){
+    return false;
+}
+//##############################################################
+
+//STEP 5: pick a non E transition to take
+looper = 1;
+
+while(looper < states+1  || found_trans == false){
+    if(/** transitions[current_state][b][looper] **/ == true){
+        found_trans = true;
+    }
+looper++;    
+}
+//############################################
+
+//STEP 6: if no non E transition are found, find the next E transition to take
+if(found_trans == false){
+    looper = 1;
+    while(looper < states+1 || e_found_trans == false){
+        if(true/** transitions[current_state][0][looper] **/ == true){
+        e_found_trans = true;
+        }
+    looper++;    
+    }       
+}
+//looper = some transition that we can take
+//found_trans = if false, e_found_trans must be true
+//e_found_trans = if false, found_trans must be true
+//############################################################################
+
+
+//STEP 7: Take the transition
+if(found_trans == true){
+    i++; //consumes a char
+     //shortens the rest_of_string
+    rest_of_string = test_string.substr(i,test_string.length() - i+1); //if i = 3,     test_string = abbabaabab        rest_of_string = baabab    
+                                                                     // length = 10-4                xxxx^^^^^^          
+}
+//otherwise it is an e transition so dont consume a char
+current_state = looper; //take the transition
+//#########################
+
+//STEP 8: run the function at the new state
+if(machine(final_states, list_final_states, test_string, states, current_state, rest_of_string, num_alpha, alphabet, i, a /** , transitions[][][] **/) == true){
+    return true; //if the function returns true, the rest of the string is accepted so end the function
+}
+//#########################################
+
+//STEP 9: if the function returns false, find another state to go to
+if(found_trans == true){ //if a non e transition was found before, continue looking for one
+    found_trans = false;
+    
+    while(looper < states+1  || found_trans == false){
+        if(/** transitions[current_state][b][looper] **/ == true){
+            found_trans = true;
+        }
+        looper++;
+    }
+    
+    
+}
+//STEP 9.5: if there is no new transition found look for an E transition
+
+if(found_trans == false && e_found_trans == false){ //no more trans were found and e trans were not searched before
+    looper = 1; //resets looper for counting if it didnt find or didnt search for an e transition previously
+}
+
+if(e_found_trans == true){ //if a e transition was found previously 
+    e_found_trans == false; //if it was previously found then reset to not found
+}
+
+while(looper < states+1 || e_found_trans == false){ //loops to find an E transition
+        if(/** transitions[current_state][0][looper] **/ == true){
+        e_found_trans = true;
+        }
+    looper++;    
+    }       
+//########################################################################
+
+//STEP 10: if no new transitions of any kind are found
+if(e_found_trans == false && found_trans == false){
+    return false;
+}
 
 
 
